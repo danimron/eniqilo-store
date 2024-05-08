@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-type Domain struct {
+type Customers struct {
 	PhoneNumber	string
 	Name		string
 	CreatedAt	time.Time

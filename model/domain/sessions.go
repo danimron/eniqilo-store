@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-type Domain struct {
+type Sessions struct {
 	Id        int
 	Token     string
 	CreatedAt time.Time

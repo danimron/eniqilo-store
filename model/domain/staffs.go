@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-type Domain struct {
+type Staffs struct {
 	Id 			int
 	PhoneNumber	string
 	Name		string

@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-type Domain struct {
+type Products struct {
 	Id 			int
 	Name		string
 	Sku		 	string
