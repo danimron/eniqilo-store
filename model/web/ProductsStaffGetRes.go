@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-type ProductsGetRes struct {
+type ProductsStaffGetRes struct {
 	Id    		string `json:"id"`
 	Name    	string `json:"name"`
 	Sku 		string `json:"sku"`
