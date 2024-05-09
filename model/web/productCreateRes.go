@@ -5,6 +5,6 @@ import (
 )
 
 type ProductCreateRes struct {
-	Id        string    `json:"id"`
+	Id        int       `json:"id"`
 	CreatedAt time.Time `json:"createdAt"`
 }

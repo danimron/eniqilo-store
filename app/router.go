@@ -7,37 +7,16 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-func NewRouter(staffController controller.StaffController) *httprouter.Router {
+func NewRouter(staffController controller.StaffController, productController controller.ProductController) *httprouter.Router {
 	router := httprouter.New()
 
 	router.POST("/v1/staff/register", staffController.Register)
 	router.POST("/v1/staff/login", staffController.Login)
 
-	// 	router.POST("/v1/cat", middleware.VerifyToken(catController.Create))
-	// 	router.GET("/v1/cat", middleware.VerifyToken(catController.FindAll))
-	// 	router.DELETE("/v1/cat/:cat_id", middleware.VerifyToken(catController.Delete))
-	// 	router.PUT("/v1/cat/:cat_id", middleware.VerifyToken(catController.Update))
-	// 	// router.POST("/v1/user/register", func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	// 	// 	printText("Register Route")
-	// 	// })
-	// 	// router.POST("/v1/user/login", func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	// 	// 	printText("Login Route")
-	// 	// })
-	// 	// router.POST("/v1/cat/match", func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	// 	// 	printText("Match Cat Route")
-	// 	// })
-	// 	// router.GET("/v1/cat/match", func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	// 	// 	printText("Get Cat Match Route")
-	// 	// })
-	// 	// router.POST("/v1/cat/match/approve", func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	// 	// 	printText("Approve Cat Match Route")
-	// 	// })
-	// 	// router.POST("/v1/cat/match/reject", func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	// 	// 	printText("Reject Cat Match Route")
-	// 	// })
-	// 	// router.DELETE("/v1/cat/match/:id", func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	// 	// 	printText("Delete Cat Match Route")
-	// 	// })
+	// Product Route
+	router.POST("/v1/product", productController.Create)
+	router.PUT("/v1/product/:id", productController.Update)
+	router.DELETE("/v1/product/:id", productController.Delete)
 
 	return router
 }

@@ -32,12 +32,12 @@ func main() {
 	staffService := service.NewStaffService(staffRepository, db, validate)
 	staffController := controller.NewStaffController(staffService)
 
-	// //cat
-	// catRepository := repository.NewCatRepository()
-	// catService := service.NewCatService(catRepository, db, validate)
-	// catController := controller.NewCatController(catService)
+	//product
+	productRepository := repository.NewProductRepository()
+	productService := service.NewProductService(productRepository, db, validate)
+	productController := controller.NewProductController(productService)
 
-	router := app.NewRouter(staffController)
+	router := app.NewRouter(staffController, productController)
 	router.PanicHandler = exception.ErrorHandler
 	server := http.Server{
 		Addr:    "localhost:8080",
