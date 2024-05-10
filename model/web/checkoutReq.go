@@ -1,8 +1,10 @@
 package web
 
+import "eniqilo_store/model/domain"
+
 type CheckoutReq struct {
 	CustomerId     int
-	ProductDetails []ProductDetails
+	ProductDetails []domain.ProductDetails
 	Paid           int
 	Change         int
 }

@@ -45,7 +45,7 @@ func (repository *ProductRepositoryImpl) Update(ctx context.Context, tx *sql.Tx,
 }
 
 func (repository *ProductRepositoryImpl) FindById(ctx context.Context, db *sql.DB, productId int) (domain.Products, error) {
-	sql := "SELECT * FROM products WHERE id = $1 and deleted_at IS NULL"
+	sql := "SELECT id, name, sku, pcategory,image_url, stock, notes, price, location, is_available, created_at FROM products WHERE id = $1 and deleted_at IS NULL"
 	rows, err := db.QueryContext(ctx, sql, productId)
 	if err != nil {
 		return domain.Products{}, err
@@ -53,7 +53,7 @@ func (repository *ProductRepositoryImpl) FindById(ctx context.Context, db *sql.D
 	product := domain.Products{}
 	defer rows.Close()
 	if !rows.Next() {
-		err := rows.Scan(&product.Id)
+		err := rows.Scan(&product.Id, &product.Name, &product.Sku, &product.Category, &product.ImageUrl, &product.Stock, &product.Notes, &product.Price, &product.Location, &product.IsAvailable, &product.CreatedAt)
 		helper.PanicIfError(err)
 		return product, nil
 	} else {
