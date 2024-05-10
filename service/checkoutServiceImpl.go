@@ -12,10 +12,25 @@ import (
 )
 
 type CheckoutServiceImpl struct {
-	TransactionRepo repository.TransactionRepository
-	ProductRepo     repository.ProductRepository
-	DB              *sql.DB
-	Validate        *validator.Validate
+	TransactionRepo       repository.TransactionRepository
+	TransactionDetailRepo repository.TransactionDetailRepository
+	ProductRepo           repository.ProductRepository
+	DB                    *sql.DB
+	Validate              *validator.Validate
+}
+
+func NewCheckoutService(checkoutService CheckoutService, 
+	transactionRepo repository.TransactionRepository,
+	 trxDetailRepo repository.TransactionDetailRepository,
+	 productRepo repository.ProductRepository,
+	 db *sql.DB, validate *validator.Validate ) CheckoutService{
+	return CheckoutServiceImpl{
+		TransactionRepo: transactionRepo,
+		TransactionDetailRepo: trxDetailRepo,
+		ProductRepo: productRepo,
+		DB: db,
+		Validate: validate,
+	}
 }
 
 func (c CheckoutServiceImpl) Create(ctx context.Context, req web.CheckoutReq) error {
@@ -25,21 +40,18 @@ func (c CheckoutServiceImpl) Create(ctx context.Context, req web.CheckoutReq) er
 	}
 
 	// defer helper.CommitOrRollback(tx)
-	products := []domain.Products{}
+	trxDetails := []domain.TransactionDetail{}
 	totalAmount := 0
 	totalItem := 0
 	tx, err := c.DB.Begin()
-	//process checkout
-	err = c.processCheckout(req, &totalAmount, &totalItem, ctx, &products,tx)
-	
-	if(err != nil){
-		return err
+	if err != nil {
+		return errorwrapper.New(errorwrapper.StatusInternalServerError, err, "")
 	}
+	//process checkout
+	err = c.processCheckout(req, &totalAmount, &totalItem, ctx, &trxDetails, tx)
 
-	// check amount of paid is correct
-	if req.Paid < totalAmount {
-		message := "Insufficient amount"
-		return errorwrapper.New(errorwrapper.StatusBadRequest, err, message)
+	if err != nil {
+		return err
 	}
 
 	change := req.Paid - totalAmount
@@ -51,19 +63,27 @@ func (c CheckoutServiceImpl) Create(ctx context.Context, req web.CheckoutReq) er
 		UserId:    req.CustomerId,
 	}
 	//save transaction
-	_, err = c.TransactionRepo.Save(ctx,tx,transaction)
-	if err != nil{
+	trx, err := c.TransactionRepo.Save(ctx, tx, transaction)
+
+	if err != nil {
 		tx.Rollback()
 
 	}
-	//TODO save transaction history
-	
+	//TODO save transaction Detail
+	for _, trxDetail := range trxDetails {
+		trxDetail.TransactionId = trx.Id
+		_, err = c.TransactionDetailRepo.Save(ctx, tx, trxDetail)
+		if err != nil {
+			return errorwrapper.New(errorwrapper.StatusInternalServerError, err, "")
+		}
+	}
+
 	tx.Commit()
 	return nil
 
 }
 
-func (c CheckoutServiceImpl) processCheckout(req web.CheckoutReq, totalAmount *int, totalItem *int, ctx context.Context, products *[]domain.Products, tx *sql.Tx) error {
+func (c CheckoutServiceImpl) processCheckout(req web.CheckoutReq, totalAmount *int, totalItem *int, ctx context.Context, trxDetails *[]domain.TransactionDetail, tx *sql.Tx) error {
 	db := c.DB
 	for _, data := range req.ProductDetails {
 		product, err := c.ProductRepo.FindById(ctx, db, data.ProductId)
@@ -75,14 +95,18 @@ func (c CheckoutServiceImpl) processCheckout(req web.CheckoutReq, totalAmount *i
 		// check product available
 		if !product.IsAvailable {
 			message := "Product " + product.Name + " is unavilable"
-			return errorwrapper.New(errorwrapper.StatusBadRequest, err, message)
+			return errorwrapper.New(errorwrapper.StatusBadRequest, nil, message)
 		}
 		//check quantity is available
 		if product.Stock < data.Quantity {
 			message := "Product " + product.Name + " is out of stock"
-			return errorwrapper.New(errorwrapper.StatusBadRequest, err, message)
+			return errorwrapper.New(errorwrapper.StatusBadRequest, nil, message)
 		}
-		*products = append(*products, product)
+		trxDetail := domain.TransactionDetail{
+			ProductId: product.Id,
+			Quantity:  data.Quantity,
+		}
+		*trxDetails = append(*trxDetails, trxDetail)
 		product.Stock = product.Stock - data.Quantity
 		// if stock is empty update product
 		if product.Stock == 0 {
@@ -92,10 +116,17 @@ func (c CheckoutServiceImpl) processCheckout(req web.CheckoutReq, totalAmount *i
 		_, err = c.ProductRepo.Save(ctx, tx, product)
 		if err != nil {
 			tx.Rollback()
-			return errorwrapper.New(errorwrapper.StatusInternalServerError, err,"")
+			return errorwrapper.New(errorwrapper.StatusInternalServerError, err, "")
 		}
 		*totalAmount += product.Price * data.Quantity
 		*totalItem += data.Quantity
-		return nil
 	}
+
+	// check amount of paid is correct
+	if req.Paid < *totalAmount {
+		message := "Insufficient amount"
+		return errorwrapper.New(errorwrapper.StatusBadRequest, nil, message)
+	}
+
+	return nil
 }
