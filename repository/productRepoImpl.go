@@ -15,13 +15,15 @@ func NewProductRepository() ProductRepository {
 	return &ProductRepositoryImpl{}
 }
 
-func (repository *ProductRepositoryImpl) Save(ctx context.Context, tx *sql.Tx, product domain.Products) domain.Products {
+func (repository *ProductRepositoryImpl) Save(ctx context.Context, tx *sql.Tx, product domain.Products) (domain.Products, error) {
 	sql := "INSERT INTO products(name, sku, category, image_url, notes, price, stock, location, is_available, created_at, updated_at) values($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id"
 	insertedId := 0
 	err := tx.QueryRowContext(ctx, sql, product.Name, product.Sku, product.Category, product.ImageUrl, product.Notes, product.Price, product.Stock, product.Location, product.IsAvailable, time.Now(), time.Now()).Scan(&insertedId)
-	helper.PanicIfError(err)
+	if err != nil {
+		return domain.Products{}, err
+	}
 	product.Id = insertedId
-	return product
+	return product, nil
 }
 
 func (repository *ProductRepositoryImpl) Delete(ctx context.Context, tx *sql.Tx, productId int) {

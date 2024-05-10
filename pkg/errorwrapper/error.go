@@ -15,17 +15,22 @@ type ErrorWrapper struct {
 	devMessage error
 }
 
-func New(code StatusCode, err error) error {
+func New(code StatusCode, err error, message string) error {
 	// get http status
 	httpStatus, ok := errHTTPStatus[code]
 	if !ok {
 		httpStatus = http.StatusInternalServerError
 	}
 
-	// get msg
-	msg, ok := errStatusMessage[code]
-	if !ok {
-		msg = StatusInternalServerErrorMessage
+	var msg string
+	if message != "" {
+		msg = message
+	} else {
+		// get msg
+		msg, ok = errStatusMessage[code]
+		if !ok {
+			msg = StatusInternalServerErrorMessage
+		}
 	}
 
 	if err == nil {
@@ -58,7 +63,7 @@ func CastToErrorWrapper(err error) *ErrorWrapper {
 
 	errWrapper, ok := err.(*ErrorWrapper)
 	if !ok || errWrapper == nil {
-		return New(StatusInternalServerError, err).(*ErrorWrapper)
+		return New(StatusInternalServerError, err, "").(*ErrorWrapper)
 	}
 
 	return errWrapper

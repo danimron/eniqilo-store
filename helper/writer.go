@@ -9,14 +9,14 @@ import (
 
 func Write(w http.ResponseWriter, data interface{}, err error) {
 	if err == nil {
-		err = errorwrapper.New(errorwrapper.StatusOK, nil)
+		err = errorwrapper.New(errorwrapper.StatusOK, nil,"")
 	}
 
 	errWrap := errorwrapper.CastToErrorWrapper(err)
 
 	// in case error not nil but not wrapped
 	if errWrap == nil {
-		err = errorwrapper.New(errorwrapper.StatusInternalServerError, err)
+		err = errorwrapper.New(errorwrapper.StatusInternalServerError, err,"")
 		errWrap = errorwrapper.CastToErrorWrapper(err)
 	}
 

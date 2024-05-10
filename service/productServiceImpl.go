@@ -46,7 +46,7 @@ func (service *ProductServiceImpl) Create(ctx context.Context, request web.Produ
 		Location:    request.Location,
 		IsAvailable: request.IsAvailable,
 	}
-	product = service.ProductRepository.Save(ctx, tx, product)
+	product, _ = service.ProductRepository.Save(ctx, tx, product)
 	return helper.ToCategoryResponseCreateProduct(product)
 }
 

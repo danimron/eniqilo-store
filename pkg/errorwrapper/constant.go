@@ -11,6 +11,7 @@ var (
 	StatusBadRequest   StatusCode = 400
 	StatusUnauthorized StatusCode = 401
 	StatusForbidden    StatusCode = 403
+	StatusNotFound     StatusCode = 404
 
 	// 5xx server errors
 	StatusInternalServerError StatusCode = 500
@@ -25,9 +26,9 @@ var (
 var (
 	StatusOKMessage = "Success"
 
-	StatusBadRequestMessage         = "Bad request"
-	StatusUnauthorizedMessage       = "Unauthorized"
-	StatusForbiddenMessage          = "Forbidden"
+	StatusBadRequestMessage          = "Bad request"
+	StatusUnauthorizedMessage        = "Unauthorized"
+	StatusForbiddenMessage           = "Forbidden"
 	StatusInternalServerErrorMessage = "Internal server error"
 
 	// Invalid Condition / Status

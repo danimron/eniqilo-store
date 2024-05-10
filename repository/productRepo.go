@@ -7,7 +7,7 @@ import (
 )
 
 type ProductRepository interface {
-	Save(ctx context.Context, tx *sql.Tx, product domain.Products) domain.Products
+	Save(ctx context.Context, tx *sql.Tx, product domain.Products) (domain.Products, error)
 	Delete(ctx context.Context, tx *sql.Tx, productId int)
 	Update(ctx context.Context, tx *sql.Tx, product domain.Products)
 	FindById(ctx context.Context, db *sql.DB, productId int) (domain.Products, error)
