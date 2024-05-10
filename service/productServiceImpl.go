@@ -7,7 +7,10 @@ import (
 	"eniqilo_store/helper"
 	"eniqilo_store/model/domain"
 	"eniqilo_store/model/web"
+	"eniqilo_store/pkg/errorwrapper"
 	"eniqilo_store/repository"
+	"net/url"
+	"slices"
 
 	// "fmt"
 	// "strings"
@@ -29,12 +32,17 @@ func NewProductService(productRepository repository.ProductRepository, DB *sql.D
 	}
 }
 
-func (service *ProductServiceImpl) Create(ctx context.Context, request web.ProductCreateReq) web.ProductCreateRes {
+func (service *ProductServiceImpl) Create(ctx context.Context, request web.ProductCreateReq) (web.ProductCreateRes, error) {
 	err := service.Validate.Struct(request)
-	helper.PanicIfError(err)
+	if err != nil {
+		return web.ProductCreateRes{}, errorwrapper.New(errorwrapper.StatusBadRequest, err, "")
+	}
+
 	tx, err := service.DB.Begin() // transaction db
-	helper.PanicIfError(err)
-	defer helper.CommitOrRollback(tx)
+	if err != nil {
+		return web.ProductCreateRes{}, errorwrapper.New(errorwrapper.StatusInternalServerError, err, "")
+	}
+
 	product := domain.Products{
 		Name:        request.Name,
 		Sku:         request.Sku,
@@ -46,32 +54,54 @@ func (service *ProductServiceImpl) Create(ctx context.Context, request web.Produ
 		Location:    request.Location,
 		IsAvailable: request.IsAvailable,
 	}
-	product = service.ProductRepository.Save(ctx, tx, product)
-	return helper.ToCategoryResponseCreateProduct(product)
+
+	product, err = service.ProductRepository.Save(ctx, tx, product)
+	errMsg := validateRequestValue(product)
+	if errMsg != "" {
+		return web.ProductCreateRes{}, errorwrapper.New(errorwrapper.StatusBadRequest, err, "")
+	}
+
+	if err != nil {
+		tx.Rollback()
+		return web.ProductCreateRes{}, errorwrapper.New(errorwrapper.StatusInternalServerError, err, "")
+	}
+
+	return helper.ToCategoryResponseCreateProduct(product), nil
 }
 
-func (service *ProductServiceImpl) Delete(ctx context.Context, ProductId int) {
+func (service *ProductServiceImpl) Delete(ctx context.Context, ProductId int) error {
 	db := service.DB
 	tx, err := service.DB.Begin()
-	helper.PanicIfError(err)
-	defer helper.CommitOrRollback(tx)
+	if err != nil {
+		return errorwrapper.New(errorwrapper.StatusInternalServerError, err, "")
+	}
+
 	_, err = service.ProductRepository.FindById(ctx, db, ProductId)
-	// if err != nil {
-	// 	panic(exception.NewNotFoundError(err.Error()))
-	// }
-	// if book.Available == 0 {
-	// 	message := errors.New("book is booked by someone cannot delete book")
-	// 	panic(exception.NewFoundError(message.Error()))
-	// }
-	service.ProductRepository.Delete(ctx, tx, ProductId)
+	if err != nil {
+		message := "Id is Not Found"
+		tx.Rollback()
+		return errorwrapper.New(errorwrapper.StatusNotFound, err, message)
+	}
+
+	err = service.ProductRepository.Delete(ctx, tx, ProductId)
+	if err != nil {
+		tx.Rollback()
+		return errorwrapper.New(errorwrapper.StatusInternalServerError, err, "")
+	}
+	return nil
 }
 
-func (service *ProductServiceImpl) Update(ctx context.Context, request web.ProductCreateReq) {
+func (service *ProductServiceImpl) Update(ctx context.Context, request web.ProductCreateReq) error {
 	err := service.Validate.Struct(request)
-	helper.PanicIfError(err)
+	if err != nil {
+		return errorwrapper.New(errorwrapper.StatusBadRequest, err, "")
+	}
+
 	tx, err := service.DB.Begin() // transaction db
-	helper.PanicIfError(err)
-	defer helper.CommitOrRollback(tx)
+	if err != nil {
+		return errorwrapper.New(errorwrapper.StatusInternalServerError, err, "")
+	}
+
 	product := domain.Products{
 		Name:        request.Name,
 		Sku:         request.Sku,
@@ -83,68 +113,47 @@ func (service *ProductServiceImpl) Update(ctx context.Context, request web.Produ
 		Location:    request.Location,
 		IsAvailable: request.IsAvailable,
 	}
-	service.ProductRepository.Update(ctx, tx, product)
+
+	errMsg := validateRequestValue(product)
+	if errMsg != "" {
+		return errorwrapper.New(errorwrapper.StatusBadRequest, err, "")
+	}
+
+	err = service.ProductRepository.Update(ctx, tx, product)
+	if err != nil {
+		tx.Rollback()
+		return errorwrapper.New(errorwrapper.StatusInternalServerError, err, "")
+	}
+	return nil
 }
 
-// func (service *ProductServiceImpl) FindAll(ctx context.Context, cat *web.CatGetParam) []web.CatGetResponse {
-// 	db := service.DB
-// 	sql := ""
-
-// 	if cat.Id != "" {
-// 		sql = AddCondition(sql) + "c.id = " + cat.Id
-// 	}
-// 	if cat.Race != "" {
-// 		sql = AddCondition(sql) + "c.race = '" + cat.Race + "'"
-// 	}
-// 	if cat.Sex != "" {
-// 		sql = AddCondition(sql) + "c.sex = '" + cat.Sex + "'"
-// 	}
-// 	if cat.Owned != "" {
-// 		if strings.ToLower(cat.HasMatched) == "true" {
-// 			sql = AddCondition(sql) + "c.user_id IS NOT NULL"
-// 		} else {
-// 			sql = AddCondition(sql) + "c.user_id IS NULL"
-// 		}
-// 	}
-// 	if cat.HasMatched != "" {
-// 		sql = " LEFT JOIN matchs m on (m.issuer_cat_id = c.id or m.receiver_cat_id = c.id) " + sql
-// 		if strings.ToLower(cat.HasMatched) == "true" {
-// 			sql = AddCondition(sql) + " m.id IS NOT NULL"
-// 		} else {
-// 			sql = AddCondition(sql) + " m.id IS NULL"
-// 		}
-// 	}
-// 	if cat.AgeInMonth != "" {
-// 		if strings.Contains(cat.AgeInMonth, ">") {
-// 			sql = AddCondition(sql) + "c.age_in_months " + cat.AgeInMonth
-// 		} else if strings.Contains(cat.AgeInMonth, "<") {
-// 			sql = AddCondition(sql) + "c.age_in_months " + cat.AgeInMonth
-// 		} else {
-// 			sql = AddCondition(sql) + "c.age_in_months = " + cat.AgeInMonth
-// 		}
-// 	}
-// 	if cat.Search != "" {
-// 		sql = AddCondition(sql) + "c.name LIKE '%" + cat.Search + "%'"
-// 	}
-// 	if cat.Limit != "" {
-// 		sql = sql + " LIMIT " + cat.Limit
-// 	}
-// 	if cat.Offset != "" {
-// 		sql = sql + " OFFSET " + cat.Offset
-// 	}
-// 	sql = "SELECT c.id, c.name, c.race, c.sex, c.age_in_months, c.description, c.created_at from cats c" + sql
-// 	fmt.Println(sql)
-
-// 	cats := service.CatRepository.FindAll(ctx, db, sql)
-// 	return helper.ToCategoryResponseCats(cats)
-// }
-
-func AddCondition(sql string) string {
-	finalSql := ""
-	if sql == "" {
-		finalSql = sql + " WHERE "
-	} else {
-		finalSql = sql + " AND "
+func validateRequestValue(product domain.Products) string {
+	category := []string{"Clothing", "Accessories", "Footwear", "Beverages"}
+	if len(product.Name) < 1 || len(product.Name) > 30 {
+		return "Name length must be in range 1 - 30 character"
 	}
-	return finalSql
+	if len(product.Sku) < 1 || len(product.Sku) > 30 {
+		return "SKU length must be in range 1 - 30 character"
+	}
+	if slices.Contains(category, product.Category) {
+		return "Category not in list"
+	}
+	_, err := url.ParseRequestURI(product.ImageUrl)
+	if err != nil {
+		return "Image Url format is not valid"
+	}
+	if len(product.Notes) < 1 || len(product.Notes) > 200 {
+		return "Notes length must be in range 1 - 200 character"
+	}
+	if product.Price == 0 || product.Price > 100000 {
+		return "Price must be in range 1 - 100000"
+	}
+	if len(product.Location) < 1 || len(product.Location) > 200 {
+		return "Notes length must be in range 1 - 200 character"
+	}
+	if !product.IsAvailable == true || !product.IsAvailable == false {
+		return "IsAvailable type must be boolean"
+	}
+
+	return ""
 }

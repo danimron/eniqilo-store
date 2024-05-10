@@ -3,6 +3,7 @@ package controller
 import (
 	"eniqilo_store/helper"
 	"eniqilo_store/model/web"
+	"eniqilo_store/pkg/errorwrapper"
 	"eniqilo_store/service"
 	"net/http"
 	"strconv"
@@ -22,13 +23,14 @@ func NewProductController(productService service.ProductService) ProductControll
 
 func (controller *ProductControllerImpl) Create(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	productCreateRequest := web.ProductCreateReq{}
-	helper.ReadFromRequestBody(r, &productCreateRequest)
-	productResponse := controller.ProductService.Create(r.Context(), productCreateRequest)
-	webResponse := web.WebResponse{
-		Message: "a",
-		Data:    productResponse,
+	err := helper.NewReadFromRequestBody(r, &productCreateRequest)
+	if err != nil {
+		err = errorwrapper.New(errorwrapper.StatusInternalServerError, err, "")
+		helper.Write(w, nil, err)
+		return
 	}
-	helper.WriteToResponseBody(w, webResponse)
+	productResponse, err := controller.ProductService.Create(r.Context(), productCreateRequest)
+	helper.Write(w, productResponse, err)
 }
 
 // func (controller *ProductControllerImpl) FindAll(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
@@ -46,28 +48,34 @@ func (controller *ProductControllerImpl) Create(w http.ResponseWriter, r *http.R
 func (controller *ProductControllerImpl) Update(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	productId := p.ByName("id")
 	id, err := strconv.Atoi(productId)
-	helper.PanicIfError(err)
+	if err != nil {
+		err = errorwrapper.New(errorwrapper.StatusInternalServerError, err, "")
+		helper.Write(w, nil, err)
+		return
+	}
 
 	productCreateRequest := web.ProductCreateReq{}
 	productCreateRequest.Id = id
 
-	helper.ReadFromRequestBody(r, &productCreateRequest)
-	controller.ProductService.Update(r.Context(), productCreateRequest)
-	webResponse := web.WebResponse{
-		Message: "a",
+	err = helper.NewReadFromRequestBody(r, &productCreateRequest)
+	if err != nil {
+		err = errorwrapper.New(errorwrapper.StatusInternalServerError, err, "")
+		helper.Write(w, nil, err)
+		return
 	}
-	helper.WriteToResponseBody(w, webResponse)
+	err = controller.ProductService.Update(r.Context(), productCreateRequest)
+	helper.Write(w, nil, err)
 }
 
 func (controller *ProductControllerImpl) Delete(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	productId := p.ByName("id")
 	id, err := strconv.Atoi(productId)
-	helper.PanicIfError(err)
-
-	controller.ProductService.Delete(r.Context(), id)
-
-	webResponse := web.WebResponse{
-		Message: "a",
+	if err != nil {
+		err = errorwrapper.New(errorwrapper.StatusInternalServerError, err, "")
+		helper.Write(w, nil, err)
+		return
 	}
-	helper.WriteToResponseBody(w, webResponse)
+
+	err = controller.ProductService.Delete(r.Context(), id)
+	helper.Write(w, nil, err)
 }
