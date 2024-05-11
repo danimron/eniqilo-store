@@ -15,7 +15,9 @@ type ErrorWrapper struct {
 	devMessage error
 }
 
-func New(code StatusCode, err error, message string) error {
+type Option func(*ErrorWrapper) error
+
+func New(code StatusCode, err error, message string, options ...Option) error {
 	// get http status
 	httpStatus, ok := errHTTPStatus[code]
 	if !ok {
@@ -45,7 +47,23 @@ func New(code StatusCode, err error, message string) error {
 		devMessage: err,
 	}
 
+	for _, opt := range options {
+		err = opt(mod)
+		if err != nil {
+			return err
+		}
+	}
+
 	return mod
+}
+
+func WithCustomMessage(message string) Option {
+	return func(e *ErrorWrapper) (err error) {
+		if message != "" {
+			e.Message = message
+		}
+		return
+	}
 }
 
 func (e *ErrorWrapper) Error() string {
