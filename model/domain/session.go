@@ -4,8 +4,10 @@ import (
 	"time"
 )
 
-type Sessions struct {
+type Session struct {
 	Id        int
+	StaffId   int
 	Token     string
 	CreatedAt time.Time
+	UpdatedAt time.Time
 }
