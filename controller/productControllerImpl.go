@@ -33,18 +33,6 @@ func (controller *ProductControllerImpl) Create(w http.ResponseWriter, r *http.R
 	helper.Write(w, productResponse, err)
 }
 
-// func (controller *ProductControllerImpl) FindAll(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-// 	CatGetParam := web.CatGetParam{}
-// 	helper.NewGetCatParam(r, &CatGetParam)
-
-// 	catResponse := controller.CatService.FindAll(r.Context(), &CatGetParam)
-// 	webResponse := web.WebResponse{
-// 		Message: "a",
-// 		Data:    catResponse,
-// 	}
-// 	helper.WriteToResponseBody(w, webResponse)
-// }
-
 func (controller *ProductControllerImpl) Update(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	productId := p.ByName("id")
 	id, err := strconv.Atoi(productId)

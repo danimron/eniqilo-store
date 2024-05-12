@@ -7,6 +7,6 @@ import (
 )
 
 type StaffRepo interface {
-	Save(ctx context.Context, tx *sql.Tx, cat domain.Staff) (domain.Staff, error)
+	Save(ctx context.Context, tx *sql.Tx, staff domain.Staff) (domain.Staff, error)
 	FindByPhoneNumber(ctx context.Context, tx *sql.Tx, phoneNumber string) (domain.Staff, error)
 }

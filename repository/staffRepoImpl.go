@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"eniqilo_store/helper"
 	"eniqilo_store/model/domain"
 	"errors"
 	"fmt"
@@ -32,7 +31,9 @@ func (repository *StaffRepoImpl) Save(ctx context.Context, tx *sql.Tx, staff dom
 	staff.UpdatedAt = time.Now()
 	insertedId := 0
 	err := tx.QueryRowContext(ctx, sql, staff.Name, staff.PhoneNumber, staff.Password, staff.CreatedAt, staff.UpdatedAt).Scan(&insertedId)
-	helper.PanicIfError(err)
+	if err != nil {
+		return staff, errors.New("error save staff")
+	}
 	staff.Id = insertedId
 	return staff, nil
 }
